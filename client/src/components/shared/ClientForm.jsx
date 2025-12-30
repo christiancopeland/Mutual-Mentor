@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Modal from '../ui/Modal'
 import Input from '../ui/Input'
 import Button from '../ui/Button'
+import { formatPhoneInput } from '../../lib/utils'
 
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Active' },
@@ -29,6 +30,7 @@ export default function ClientForm({
   })
 
   const [errors, setErrors] = useState({})
+  const firstNameInputRef = useRef(null)
 
   // Reset form when modal opens/closes or when initialData changes
   useEffect(() => {
@@ -60,12 +62,28 @@ export default function ClientForm({
     }
   }, [isOpen, initialData])
 
+  // Auto-focus first name field when modal opens
+  useEffect(() => {
+    if (isOpen && firstNameInputRef.current) {
+      // Small delay to wait for modal animation
+      const timer = setTimeout(() => {
+        firstNameInputRef.current?.focus()
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [isOpen])
+
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: null }))
     }
+  }
+
+  const handlePhoneChange = (e) => {
+    const formatted = formatPhoneInput(e.target.value, formData.phone)
+    setFormData(prev => ({ ...prev, phone: formatted }))
   }
 
   const validate = () => {
@@ -134,6 +152,7 @@ export default function ClientForm({
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <Input
+            ref={firstNameInputRef}
             label="First Name *"
             value={formData.first_name}
             onChange={(e) => handleChange('first_name', e.target.value)}
@@ -157,8 +176,8 @@ export default function ClientForm({
             label="Phone"
             type="tel"
             value={formData.phone}
-            onChange={(e) => handleChange('phone', e.target.value)}
-            placeholder="555-1234"
+            onChange={handlePhoneChange}
+            placeholder="(555) 555-1234"
             disabled={isLoading}
           />
 

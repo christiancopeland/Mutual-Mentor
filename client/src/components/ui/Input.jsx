@@ -1,11 +1,12 @@
+import { forwardRef } from 'react'
 import clsx from 'clsx'
 
-export default function Input({
+const Input = forwardRef(function Input({
   label,
   error,
   className,
   ...props
-}) {
+}, ref) {
   return (
     <div className={className}>
       {label && (
@@ -14,6 +15,7 @@ export default function Input({
         </label>
       )}
       <input
+        ref={ref}
         className={clsx(
           'w-full px-3 py-2 border rounded-md transition-colors duration-200',
           'focus:outline-none focus:ring-2 focus:ring-blue-500',
@@ -28,4 +30,6 @@ export default function Input({
       )}
     </div>
   )
-}
+})
+
+export default Input

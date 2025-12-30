@@ -6,7 +6,7 @@ const router = express.Router()
 // Pipeline analytics - client distribution by status and phase
 router.get('/pipeline', (req, res) => {
   try {
-    const userId = 'default'
+    const userId = req.user.id // CRITICAL-2: Use authenticated user
 
     // Get clients by status
     const statusQuery = db.prepare(`
@@ -90,15 +90,27 @@ router.get('/pipeline', (req, res) => {
       potentiallyStalled: potentiallyStalled?.count || 0
     })
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ error: 'Failed to fetch pipeline analytics' })
   }
 })
 
 // Performance trends - metrics over time
 router.get('/performance', (req, res) => {
   try {
-    const userId = 'default'
+    const userId = req.user.id // CRITICAL-2: Use authenticated user
     const { period = 'weekly', limit = 12 } = req.query
+
+    // Validate period
+    const validPeriods = ['daily', 'weekly', 'monthly', 'quarterly', 'yearly']
+    if (!validPeriods.includes(period)) {
+      return res.status(400).json({ error: `Invalid period. Must be one of: ${validPeriods.join(', ')}` })
+    }
+
+    // Validate limit
+    const limitNum = parseInt(limit)
+    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+      return res.status(400).json({ error: 'limit must be a number between 1 and 100' })
+    }
 
     // Get historical metrics for the period type
     const metricsQuery = db.prepare(`
@@ -120,7 +132,7 @@ router.get('/performance', (req, res) => {
       ORDER BY period_start DESC
       LIMIT ?
     `)
-    const metrics = metricsQuery.all(userId, period, parseInt(limit))
+    const metrics = metricsQuery.all(userId, period, limitNum)
 
     // Reverse to get chronological order and add period labels
     metrics.reverse()
@@ -162,14 +174,14 @@ router.get('/performance', (req, res) => {
       }
     })
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ error: 'Failed to fetch performance analytics' })
   }
 })
 
 // Summary stats for quick overview
 router.get('/summary', (req, res) => {
   try {
-    const userId = 'default'
+    const userId = req.user.id // CRITICAL-2: Use authenticated user
 
     // Get this month's metrics vs goal
     const now = new Date()
@@ -211,7 +223,7 @@ router.get('/summary', (req, res) => {
       }
     })
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ error: 'Failed to fetch analytics summary' })
   }
 })
 

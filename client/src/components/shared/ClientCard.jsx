@@ -5,6 +5,7 @@ import Badge from '../ui/Badge'
 import ProgressBar from '../ui/ProgressBar'
 import Button from '../ui/Button'
 import PipelineChecklist from './PipelineChecklist'
+import { formatPhoneNumber } from '../../lib/utils'
 
 // Get current phase based on current step
 function getCurrentPhase(currentStep) {
@@ -89,7 +90,7 @@ export default function ClientCard({
           {client.phone && (
             <div className="flex items-center gap-1">
               <Phone className="h-4 w-4" />
-              <span>{client.phone}</span>
+              <span>{formatPhoneNumber(client.phone)}</span>
             </div>
           )}
           {client.email && (
@@ -99,6 +100,16 @@ export default function ClientCard({
             </div>
           )}
         </div>
+
+        {/* Notes Preview */}
+        {client.notes && (
+          <div className="mb-3 p-2 bg-gray-50 rounded-md border border-gray-200">
+            <div className="text-xs font-medium text-gray-700 mb-1">Notes</div>
+            <p className="text-sm text-gray-600 italic line-clamp-2">
+              {client.notes}
+            </p>
+          </div>
+        )}
 
         {/* Progress Bar */}
         <div className="mb-3">

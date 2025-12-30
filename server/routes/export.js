@@ -34,7 +34,8 @@ function getPhaseName(stepNumber) {
 // Export clients to CSV
 router.get('/clients/csv', (req, res) => {
   try {
-    const clients = getAllClients('default', {})
+    const userId = req.user.id // CRITICAL-2: Use authenticated user
+    const clients = getAllClients(userId, {})
 
     // CSV headers
     const headers = [
@@ -61,7 +62,7 @@ router.get('/clients/csv', (req, res) => {
       const progress = Math.round((completedSteps.length / 43) * 100)
 
       return [
-        escapeCSV(client.name),
+        escapeCSV(`${client.first_name} ${client.last_name}`),
         escapeCSV(client.phone),
         escapeCSV(client.email),
         escapeCSV(client.status),
@@ -92,14 +93,15 @@ router.get('/clients/csv', (req, res) => {
 // Export metrics to CSV
 router.get('/metrics/csv', (req, res) => {
   try {
+    const userId = req.user.id // CRITICAL-2: Use authenticated user
     const { period_type } = req.query
 
     // Build query
     let query = `
       SELECT * FROM granum_metrics
-      WHERE user_id = 'default'
+      WHERE user_id = ?
     `
-    const params = []
+    const params = [userId]
 
     if (period_type) {
       query += ` AND period_type = ?`
@@ -162,9 +164,10 @@ router.get('/metrics/csv', (req, res) => {
 // Export goals to CSV
 router.get('/goals/csv', (req, res) => {
   try {
+    const userId = req.user.id // CRITICAL-2: Use authenticated user
     const goals = db.prepare(`
       SELECT * FROM goals
-      WHERE user_id = 'default'
+      WHERE user_id = ?
       ORDER BY
         CASE period_type
           WHEN 'daily' THEN 1
@@ -173,7 +176,7 @@ router.get('/goals/csv', (req, res) => {
           WHEN 'quarterly' THEN 4
           WHEN 'yearly' THEN 5
         END
-    `).all()
+    `).all(userId)
 
     // CSV headers
     const headers = [
@@ -211,11 +214,12 @@ router.get('/goals/csv', (req, res) => {
 // Export bonuses to CSV
 router.get('/bonuses/csv', (req, res) => {
   try {
+    const userId = req.user.id // CRITICAL-2: Use authenticated user
     const bonuses = db.prepare(`
       SELECT * FROM bonuses
-      WHERE user_id = 'default'
+      WHERE user_id = ?
       ORDER BY deadline ASC
-    `).all()
+    `).all(userId)
 
     // CSV headers
     const headers = [
@@ -262,24 +266,10 @@ router.get('/bonuses/csv', (req, res) => {
   }
 })
 
-// Database backup endpoint
-router.get('/backup', (req, res) => {
-  try {
-    const dbPath = process.env.DATABASE_PATH || join(__dirname, '../data/crm.db')
-
-    if (!fs.existsSync(dbPath)) {
-      return res.status(404).json({ error: 'Database file not found' })
-    }
-
-    const filename = `mutual-mentor-backup-${new Date().toISOString().split('T')[0]}.db`
-    res.setHeader('Content-Type', 'application/octet-stream')
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
-
-    const fileStream = fs.createReadStream(dbPath)
-    fileStream.pipe(res)
-  } catch (error) {
-    res.status(500).json({ error: error.message })
-  }
-})
+// SECURITY: Database backup endpoint REMOVED
+// This endpoint was a critical security vulnerability (CRITICAL-3)
+// that allowed unauthenticated access to the entire database.
+// Backups should only be performed by authorized administrators
+// through secure, authenticated channels.
 
 export default router

@@ -13,7 +13,13 @@
     "build": "cd client && npm run build",
     "start": "cd server && npm start"
   },
-  "keywords": ["crm", "northwestern-mutual", "advisor", "pipeline", "metrics"],
+  "keywords": [
+    "crm",
+    "northwestern-mutual",
+    "advisor",
+    "pipeline",
+    "metrics"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {

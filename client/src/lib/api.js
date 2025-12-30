@@ -1,6 +1,13 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
 /**
+ * Get authentication token from localStorage
+ */
+function getAuthToken() {
+  return localStorage.getItem('token')
+}
+
+/**
  * Generic API request handler
  * @param {string} endpoint - API endpoint
  * @param {Object} options - Fetch options
@@ -9,11 +16,19 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 async function request(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`
 
+  // Add authentication token if available
+  const token = getAuthToken()
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  }
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+
   const config = {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
+    headers,
     ...options,
   }
 
@@ -22,7 +37,16 @@ async function request(endpoint, options = {}) {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ message: 'Request failed' }))
-      throw new Error(error.message || `HTTP ${response.status}`)
+
+      // If unauthorized, clear token and redirect to login
+      if (response.status === 401) {
+        localStorage.removeItem('token')
+        if (!endpoint.includes('/auth/')) {
+          window.location.href = '/login'
+        }
+      }
+
+      throw new Error(error.error || error.message || `HTTP ${response.status}`)
     }
 
     return await response.json()
@@ -166,6 +190,26 @@ export const settingsApi = {
   },
 }
 
+// Authentication API methods
+export const authApi = {
+  login: (email, password) => request('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  }),
+  register: (email, name, password) => request('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ email, name, password }),
+  }),
+  getMe: () => request('/auth/me'),
+  changePassword: (currentPassword, newPassword) => request('/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword, newPassword }),
+  }),
+  refresh: () => request('/auth/refresh', {
+    method: 'POST',
+  }),
+}
+
 export default {
   clients: clientsApi,
   pipeline: pipelineApi,
@@ -176,4 +220,5 @@ export default {
   dashboard: dashboardApi,
   analytics: analyticsApi,
   settings: settingsApi,
+  auth: authApi,
 }

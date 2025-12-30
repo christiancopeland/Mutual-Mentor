@@ -6,9 +6,13 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
 const DB_PATH = process.env.DATABASE_PATH || join(__dirname, '../data/crm.db')
+const isProduction = process.env.NODE_ENV === 'production'
 
 // Initialize database
-const db = new Database(DB_PATH, { verbose: console.log })
+// CRITICAL-7: Disable verbose SQL logging in production to prevent PII exposure in logs
+const db = new Database(DB_PATH, {
+  verbose: isProduction ? null : console.log
+})
 
 // Enable foreign keys
 db.pragma('foreign_keys = ON')
@@ -300,7 +304,7 @@ export function getAllClients(userId = 'default', filters = {}) {
   }
 
   if (filters.search) {
-    query += ' AND (first_name LIKE ? OR last_name LIKE ? OR (first_name || " " || last_name) LIKE ?)'
+    query += " AND (first_name LIKE ? OR last_name LIKE ? OR (first_name || ' ' || last_name) LIKE ?)"
     params.push(`%${filters.search}%`, `%${filters.search}%`, `%${filters.search}%`)
   }
 
